@@ -1,0 +1,24 @@
+{
+  "name": "threejs",
+  "version": "1.0.0",
+  "description": "a place to learn about three.js",
+  "main": "sketch.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/rbn/threejs.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/rbn/threejs/issues"
+  },
+  "homepage": "https://github.com/rbn/threejs#readme",
+  "dependencies": {
+    "canvas-sketch": "^0.7.4",
+    "three": "^0.137.5"
+  }
+}
