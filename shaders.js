@@ -5,12 +5,31 @@ global.THREE = require("three");
 require("three/examples/js/controls/OrbitControls");
 
 const canvasSketch = require("canvas-sketch");
+const random = require('canvas-sketch-util/random');
+
+const glsl = require("glslify");
+const { Vector3 } = require("three");
+const { Vector2 } = require("three");
 
 const settings = {
   // Make the loop animated
   animate: true,
   // Get a WebGL canvas rather than 2D
   context: "webgl"
+};
+
+const posToVert = ( bufferGeom ) => {
+  const vertices = [];
+
+  const position = bufferGeom.attributes.position;
+
+  for ( let i = 0, l = position.count; i < l; i ++ ) {    
+    const vector = new THREE.Vector3();
+    vector.fromBufferAttribute( position, i );
+    vertices.push(vector);
+  }
+
+  return vertices;
 };
 
 const sketch = ({ context }) => {
@@ -23,8 +42,8 @@ const sketch = ({ context }) => {
   renderer.setClearColor("#fff", 1);
 
   // Setup a camera
-  const camera = new THREE.PerspectiveCamera(50, 1, 0.01, 100);
-  camera.position.set(0, 0, -4);
+  const camera = new THREE.PerspectiveCamera(60, 4, 0.01, 100);
+  camera.position.set(2, 4, 4);
   camera.lookAt(new THREE.Vector3());
 
   // Setup camera controller
@@ -34,8 +53,12 @@ const sketch = ({ context }) => {
   const scene = new THREE.Scene();
 
   // Setup a geometry
-  const geometry = new THREE.BoxGeometry(1, 1, 1);
+  const geometry = new THREE.SphereGeometry(1, 32, 16);
+  const baseGeom = new THREE.IcosahedronGeometry(1, 1);
 
+  const points = posToVert( baseGeom );
+
+  
   const vertexShader = /* glsl */ `
     varying vec2 vUv;
 
@@ -45,26 +68,16 @@ const sketch = ({ context }) => {
     }
 `;
 
-
-  const fragmentShader = /* glsl */ `
+  const fragmentShader = glsl(/* glsl */ `
+    #pragma glslify: noise = require('glsl-noise/simplex/3d');
     varying vec2 vUv;
     uniform vec3 color;
     uniform float time;
     
     void main() {
-      vec2 center = vec2(0.5, 0.5);
-
-      // a % b = mod(a, b) in JS
-      vec2 pos = mod(vUv * 8.0, 1.0);
-
-      float d = distance(pos, center);
-
-      float mask = step(0.25 + sin(time + vUv.x * 2.0), d); // d > 0.25 ? 1.0 : 0.0;
-      mask = 1.0 - mask; // invert colors
-
-      gl_FragColor = vec4(vec3(mask), 1.0);
+      gl_FragColor = vec4(vec3(color), 0.8);
     }
-  `;
+  `);
 
   // Setup a material
   const material = new THREE.ShaderMaterial({
