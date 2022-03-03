@@ -61,9 +61,11 @@ const sketch = ({ context }) => {
   
   const vertexShader = /* glsl */ `
     varying vec2 vUv;
+    varying vec3 vPosition;
 
     void main() {
       vUv = uv;
+      vPosition = position;
       gl_Position = projectionMatrix * modelViewMatrix * vec4(position.xyz, 1.0);
     }
 `;
@@ -71,17 +73,40 @@ const sketch = ({ context }) => {
   const fragmentShader = glsl(/* glsl */ `
     #pragma glslify: noise = require('glsl-noise/simplex/3d');
     varying vec2 vUv;
+    varying vec3 vPosition;
+
     uniform vec3 color;
     uniform float time;
+
+    uniform vec3 points[POINT_COUNT];
     
     void main() {
-      gl_FragColor = vec4(vec3(color), 0.8);
+      float dist = 10000.0;
+
+      for (int i = 0; i < POINT_COUNT; i++){
+        vec3 p = points[i];
+        float d = distance(vPosition, p);
+        dist = min(d, dist);
+      }
+
+      float mask = step(0.12, dist);
+      mask = 1.0 - mask;
+
+      /* put in reso colors now */
+      
+      vec3 fragColor = mix(color, vec3(1.0), mask);
+
+      gl_FragColor = vec4(vec3(fragColor), 1.0);
     }
   `);
 
   // Setup a material
   const material = new THREE.ShaderMaterial({
+    defines: {
+      POINT_COUNT: points.length
+    },
     uniforms: {
+      points: { value: points },
       time: { value: 0 },
       color: { value: new THREE.Color("#ff00ff") }
     },
