@@ -20,7 +20,11 @@
   "dependencies": {
     "canvas-sketch": "^0.7.4",
     "canvas-sketch-util": "^1.10.0",
+    "glsl-aastep": "^1.0.1",
     "glsl-noise": "^0.0.0",
+    "pack-spheres": "^1.0.4",
+    "paper-colors": "^1.0.0",
+    "riso-colors": "^1.0.1",
     "three": "^0.137.5"
   }
 }

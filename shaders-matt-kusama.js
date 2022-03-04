@@ -23,8 +23,8 @@ const sketch = ({ context }) => {
   renderer.setClearColor("#000", 1);
 
   // Setup a camera
-  const camera = new THREE.PerspectiveCamera(50, 1, 0.01, 500);
-  camera.position.set(3, 3, -5);
+  const camera = new THREE.PerspectiveCamera(50, 1, 0.01, 100);
+  camera.position.set(0, 0, -4);
   camera.lookAt(new THREE.Vector3());
 
   // Setup camera controller
@@ -34,48 +34,54 @@ const sketch = ({ context }) => {
   const scene = new THREE.Scene();
 
   // Setup a geometry
-  const geometry = new THREE.SphereGeometry(1, 32, 16);
+  const geometry = new THREE.SphereGeometry(1, 64, 32);
+  const baseGeometry = new THREE.IcosahedronGeometry(1, 1);
 
-  // create textures
-  const loader = new THREE.TextureLoader();
-  const earthTexture = loader.load("earth.jpg");
-  const moonTexture = loader.load("moon.jpg");
+  // List of points we will pass to the shader
+  const points = baseGeometry.vertices;
 
   // Setup a material
-  const earthMaterial = new THREE.MeshStandardMaterial({
-    roughness: 1,
-    metalnes: 0,
-    map: earthTexture
-  });
+  const material = new THREE.ShaderMaterial({
+    defines: {
+      POINT_COUNT: points.length
+    },
+    uniforms: {
+      color: { value: new THREE.Color("tomato") },
+      pointColor: { value: new THREE.Color("white") },
+      points: { value: points }
+    },
+    vertexShader: /*glsl*/ `
+    varying vec3 vPosition;
+    void main () {
+      vPosition = position;
+      gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+    }
+    `,
+    fragmentShader: /*glsl*/ `
+    varying vec3 vPosition;
+    uniform vec3 color;
+    uniform vec3 pointColor;
+    uniform vec3 points[POINT_COUNT];
+    void main () {
+      float dist = 1000.0;
+      for (int i = 0; i < POINT_COUNT; i++) {
+        vec3 point = points[i];
+        float curDist = distance(vPosition, point);
+        dist = min(curDist, dist);
+      }
 
-  const moonGroup = new THREE.Group();
-  const moonMaterial = new THREE.MeshStandardMaterial({
-    roughness: 1,
-    metalnes: 0,
-    map: moonTexture
+      float inside = dist < 0.1 ? 1.0 : 0.0;
+      
+      vec3 fragColor = mix(color, pointColor, inside);
+      
+      gl_FragColor = vec4(fragColor, 1.0);
+    }
+    `
   });
 
   // Setup a mesh with geometry + material
-  const mesh = new THREE.Mesh(geometry, earthMaterial);
-  mesh.position.set(x*i, y*i, z);
+  const mesh = new THREE.Mesh(geometry, material);
   scene.add(mesh);
-
-  const moonMesh = new THREE.Mesh(geometry, moonMaterial);
-  moonMesh.position.set(2, 1, 0);
-  moonMesh.scale.setScalar(0.15);
-  moonGroup.add(moonMesh);
-
-  scene.add(moonGroup);
-
-  // lighting
-  const light = new THREE.PointLight('white', 2.5);
-  light.position.set(0, 2, 0);
-  scene.add(light);
-  
-  // helpers
-  scene.add(new THREE.PointLightHelper(light, 0.15));
-  scene.add(new THREE.GridHelper(5, 50));
-  scene.add(new THREE.AxesHelper(20));
 
   // draw each frame
   return {
@@ -88,10 +94,6 @@ const sketch = ({ context }) => {
     },
     // Update & render your scene here
     render({ time }) {
-      mesh.rotation.y = time * 0.15;
-      moonMesh.rotation.y = time * -0.1;
-      moonMesh.rotation.z = time * -0.1;
-      moonGroup.rotation.y = time * .5;
       controls.update();
       renderer.render(scene, camera);
     },
